@@ -1,0 +1,63 @@
+---
+- name: To create a team group, add the members(users) and share the password with them.
+  hosts: ansible@172.31.87.45
+  become: yes
+  connection: ssh
+  vars:
+    group: Ericson
+  tasks:
+    - name: Create a group.
+      group:
+        name: "{{ group }}"
+        state: present
+    - name: Create users.
+      user:
+        name: "{{ item }}"
+        state: present
+        shell: /bin/bash
+        group: "{{ group }}"
+      loop:
+        - sapna
+        - rishita
+        - kumar
+    - name: Set a password for all the users
+      user: name=sapna password={{ 'read@123' | password_hash('sha512') }}
+      register: sapna
+    - user: name=rishita password={{ 'write@123' | password_hash('sha512') }}
+      register: rishita
+    - user: name=kumar password={{ 'execute@123' | password_hash('sha512') }}
+      register: kumar
+
+    - name: Create a CSV file and set the header
+      lineinfile:
+        dest: /tmp/user.csv
+        line:
+          username,password
+        create: yes
+        state: present
+      delegate_to: localhost
+
+    - name: Write information to the .csv file.
+      lineinfile:
+        insertafter: EOF
+        dest: /tmp/user.csv
+        line: "{{ item }}"
+      loop:
+        - sapna,read@123
+        - rishita,write@123
+        - kumar,execute@123
+      delegate_to: localhost
+
+    - name: Sending email to the users
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        username: elipsis007711@gmail.com
+        password: ddymmvdmkcboelkb
+        to: rishikeshsonawane1465@gmail.com
+        subject: Get Your Credentials
+        body: Your login credentials has been generated. Find the credentials in the below attached CSV file.
+        attach: /tmp/user.csv
+      delegate_to: localhost
+      tags:
+        - test
