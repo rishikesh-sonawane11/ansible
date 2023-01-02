@@ -1,0 +1,62 @@
+---
+- name: check whether ssh connection is established or not.
+  hosts: ansible@172.31.36.157
+  connection: ssh
+  gather_facts:
+
+  tasks:
+    - name: ping
+      ping:
+        data: crash
+      register: ping
+      ignore_errors: yes
+    - debug: var=ping
+
+    - name: if fails
+      shell: echo "task failed"
+      register: fail
+      when: ping is failed
+    - debug: msg="sorry ping failed"
+      when: ping is failed
+
+    - name: establish connectivity with failed hosts
+      user:
+        name: ansible
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: ssh/id_rsa
+      when: ping is failed
+
+    - name: if success
+      shell: echo "{{ ansible_hostname, ansible_os_family }}"
+      register: success
+      when: ping is succeeded
+
+    - name: if success
+      shell: echo "{{ ansible_hostname, ansible_os_family }}"
+      register: success
+      when: ping is succeeded
+    - debug: var=success.stdout
+      when: ping is succeeded
+
+    - set_fact:
+        csv_tmp: >
+          {{ansible_hostname}}, {{ansible_os_family}}
+      register: data
+    - debug: var=data
+
+    - name: CSV - Create file and set the header
+      lineinfile:
+        dest: /tmp/ping.csv
+        line:
+          ansible_hostname, ansible_os_family
+        create: yes
+        state: present
+      delegate_to: localhost
+ 	
+    - name: CSV - Write information into .csv file
+      lineinfile:
+        insertafter: EOF
+        dest: "/tmp/ping.csv"
+        line: "{{csv_tmp}}"
+      delegate_to: localhost

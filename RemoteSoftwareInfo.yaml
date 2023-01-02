@@ -1,0 +1,52 @@
+---
+- name: Install and check docker and apache version of remote hosts and get the report.
+  hosts: demo
+  become: yes
+  tasks:
+    - name: for linux
+      block:
+        - name: Install the latest version of Apache
+          yum:
+            name: httpd
+            state: latest
+        - name: Install the latest version of Docker
+          yum:
+            name: docker
+            state: latest
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: for debian
+      block:
+        - name: Install the latest version of Apache
+          yum:
+            name: apache2
+            state: latest
+        - name: Install the latest version of Docker
+          yum:
+            name: docker
+            state: latest
+      when: ansible_facts['os_family'] == "Debian"
+    - name: to send a .sh file to hosts
+      copy:
+        src: /home/ansible/version.sh
+        dest: /tmp/version.sh
+        mode: u+rwx
+    - name: to run the script
+      shell: bash version.sh
+      args:
+        chdir: /tmp
+    - name: to get the report from remote hosts
+      fetch:
+        src: /tmp/report.txt
+        dest: /home/ansible/report-{{ inventory_hostname }}
+        flat: yes
+
+script: version.sh
+#!/usr/bin/env bash
+cat > report.txt << EOF
+date=$(date '+%d_%m_%y')
+User: $USER
+Hostname: $HOSTNAME
+OS: $(uname)
+docker: $(docker -v | grep version | awk '{print $3}' | tr ',' ' ')
+httpd: $(apache2 -v | grep version | awk -F '/' '{print $2}' |  tr '(Ubuntu)' ' ')
+EOF

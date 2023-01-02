@@ -1,0 +1,41 @@
+---
+- name: Master playbook to get fact data of remote machines
+  hosts: demo
+  become: yes
+  connection: ssh
+  gather_facts: yes
+
+  vars:
+    filename: "device_report_{{ date }}.csv"
+
+  tasks:
+    - name: CSV - Get device facts
+      set_fact:
+        csv_tmp: >
+          {{ansible_distribution}},{{ansible_nodename}},{{ansible_os_family}},{{ansible_pkg_mgr}},{{ansible_user_shell}},{{ansible_machine_id}}
+      register: data
+    - debug: var=data
+
+    - name: CSV - Generate output filename
+      set_fact: date="{{lookup('pipe','date +%Y_%m_%d')}}"
+      run_once: true
+      register: name
+    - debug: var=name
+
+    - name: CSV - Create file and set the header
+      lineinfile:
+        dest: /home/ansible/{{ filename }}
+        line:
+          ansible_distribution,ansible_nodename,ansible_os_family,ansible_pkg_mgr,ansible_user_shell,ansible_machine_id
+        create: yes
+        state: present
+      delegate_to: localhost
+
+    - name: CSV - Write information into .csv file
+      lineinfile:
+        insertafter: EOF
+        dest: /home/ansible/{{ filename }}
+        line: "{{ hostvars[item]['csv_tmp'] }}"
+      loop: "{{ groups['demo'] }}"
+      delegate_to: localhost
+
