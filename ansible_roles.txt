@@ -1,0 +1,274 @@
+To create an ansible role, a tool called ansible galaxy comes bunduled with ansible.
+syntax: ansible-galaxy init <rolename>
+eg: ansible-galaxy init samplerolename
+Now to create a role what you initially have to do is
+you have to go to the ansible directory
+so for that what you'll do is :
+cd /etc/ansible/
+then we'll list
+ls
+so when you'll list you'll see a directory of roles
+so we'll go to roles
+cd /roles/
+once i enter roles dir ill just list
+ls
+so as we see we do not have any roles present here rn
+so to create a role what we'll do is we'll type:
+sudo ansible-galaxy init <rolename>
+passwd and enter again
+output: - Role <rolename> was created successfully
+ls and check
+so that's how guys you can create a ansible role.
+
+DIRECTORY STRUCTURE
+So the directory structure of ansible roles is as you can see in this picture
+we have defaults, files, handlers, meta, readme.md, tasks, templates, tests, vars
+default dir: contains all the default variable which we are gonna use for this particular role
+files: the files contain those files which can be deployed by this role. so it contains the files that need to be sent to the host while configuring the role
+handlers: contains handlers which maybe used by this role or even outside this particular role
+meta: defines the metadata for this role so basically it constains all the data that establish the role dependencies.
+tasks: constains the main list of tasks that are to be executed by this particular role and contains a YAML file for that particular role itself
+templates: templates contains those files which can be modified and added to the hosts been provisioned. so jinja2 is the template language that we use to achive this modification
+test: test dir is used to include the testing part and ansible playbooks so when you define a role you have a test directory and this particular test dir is used to achive the test for that particular role
+vars: so this dir contains the other variables that are going to be used by the role so this variables can be defined in your playbook but its a good practise to define them in this dir
+
+so now that we have an overview of the dir structure let us open the dir of ansible role that we have created
+cd /samplerole
+ls
+you can now see all the dirs that we mentioned before
+so this was all about the dir structure guys
+sudo apt install tree
+cd ..
+tree samplemean/
+
+
+hands-on
+now lets go to the main task where we'll install a mean stack application by using ansible roles 
+so to install a mean stack appli using ansible role we'll be just executing asingle playbook and then we'll have 3 roles 
+1 to install the prerequisites 1 to install mongodb nad one to install nodejs 
+we have to initially create 3 roles
+prerequisites mongodb and nodejs
+inside roles dir
+ sudo ansible-galaxy init prerequisites
+output: - Role prerequisites was created successfully
+ sudo ansible-galaxy init mongodb
+output: - Role mongodb was created successfully
+ sudo ansible-galaxy init nodejs
+output: - Role nodejs was created successfully
+
+now once our role is created the next step is to configure the roles
+so to configure our roles what one should do is do to the first role
+cd prerequisites/
+then you'll go to the task section of this particular role
+cd task/
+and then you'll write a yaml file for this particular role
+so to write a yaml file you'll type:
+sudo vi main.yml
+once you enter the editor you have to write the tasks for this particular role
+
+so as you can see the yaml file is open 
+so our initial prereq is git so to install git we have to perform the following tasks
+
+mentioned update_cache to be yes so that is because you know we want to update the repo list before installing this package 
+save and exit
+
+go to a different file that is the mongodb role
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites/tasks$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ cd mongodb/
+
+
+to install mdb the task you have to do first is to import the mbd pub kry then you have to mention the task to add the mdb repo then to install mdb and then finally check if the service is running or not
+so all of this tasks we'll define the tasks in mdb role
+so as you can see that our main. yaml file is opened up 
+
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ sudo ansible-galaxy init prerequisites
+- Role prerequisites was created successfully
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ ^C
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ sudo ansible-galaxy init mongodb
+- Role mongodb was created successfully
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ sudo ansible-galaxy init nodejs
+- Role nodejs was created successfully
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ ls
+mongodb  nodejs  prerequisites  samplemean
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ cd prerequisites/
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites$ cd tasks/
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites/tasks$ ls
+main.yml
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites/tasks$ vi main.yml
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites/tasks$ sudo vi main.yml
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites/tasks$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/prerequisites$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ cd mongodb/
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/mongodb$ ^C
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/mongodb$ cd tasks/
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/mongodb/tasks$ sudo vi main.yml
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/mongodb/tasks$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/mongodb$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ cd nodejs/tasks/
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/nodejs/tasks$ sudo vi main.yml
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/nodejs/tasks$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles/nodejs$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible/roles$ cd ..
+ubuntu@ip-172-31-34-206:/etc/ansible$ sudo vi meanstack.yml
+ubuntu@ip-172-31-34-206:/etc/ansible$
+ubuntu@ip-172-31-34-206:/etc/ansible$ sudo apt-key list | grep "expired:"
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+ubuntu@ip-172-31-34-206:/etc/ansible$ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xd68fa50fea312927
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+Executing: /tmp/apt-key-gpghome.VcAt7TVOTr/gpg.1.sh --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xd68fa50fea312927
+gpg: key D68FA50FEA312927: public key "MongoDB 3.2 Release Signing Key <packaging@mongodb.com>" imported
+gpg: Total number processed: 1
+gpg:               imported: 1
+ubuntu@ip-172-31-34-206:/etc/ansible$
+
+ubuntu@ip-172-31-34-206:/etc/ansible$ cd /var/lib/dpkg/
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ ls
+alternatives  cmethopt    diversions-old  lock           parts         statoverride-old  status-old  updates
+available     diversions  info            lock-frontend  statoverride  status            triggers
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ rm lock
+rm: remove write-protected regular empty file 'lock'? y
+rm: cannot remove 'lock': Permission denied
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ rm lock-frontend
+rm: remove write-protected regular empty file 'lock-frontend'? y
+rm: cannot remove 'lock-frontend': Permission denied
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ ls
+alternatives  cmethopt    diversions-old  lock           parts         statoverride-old  status-old  updates
+available     diversions  info            lock-frontend  statoverride  status            triggers
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$
+
+
+
+ubuntu@ip-172-31-34-206:/etc/ansible$ cd /var/lib/dpkg/
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ ls
+alternatives  cmethopt    diversions-old  lock           parts         statoverride-old  status-old  updates
+available     diversions  info            lock-frontend  statoverride  status            triggers
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ rm lock
+rm: remove write-protected regular empty file 'lock'? y
+rm: cannot remove 'lock': Permission denied
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ rm lock-frontend
+rm: remove write-protected regular empty file 'lock-frontend'? y
+rm: cannot remove 'lock-frontend': Permission denied
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ ls
+alternatives  cmethopt    diversions-old  lock           parts         statoverride-old  status-old  updates
+available     diversions  info            lock-frontend  statoverride  status            triggers
+ubuntu@ip-172-31-34-206:/var/lib/dpkg$ cd
+ubuntu@ip-172-31-34-206:~$ cd
+ubuntu@ip-172-31-34-206:~$ cd /etc/ansible/
+ubuntu@ip-172-31-34-206:/etc/ansible$ sudo ansible-playbook /etc/ansible/meanstack.yml -K
+
+
+---
+# tasks file for mongodb
+
+- name: MongoDB - Import public key
+  apt_key:
+    keyserver: hkp://keyserver.ubuntu.com:80
+    id: EA312927
+
+- name: MongoDB - Add repository
+  apt_repository:
+    filename: '/etc/apt/sources.list.d/mongodb-org/3.2.list'
+    repo: 'deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse'
+    state: present
+    update_cache: yes
+
+- name: MongoDB - Install MongoDB
+  apt:
+    name: mongodb-server
+    state: present
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Start mongodb
+  shell: mongod &
+  ignore_errors: yes
+
+
+---
+# tasks file for nodejs
+- name: Node.js - Get Script
+  get_url:
+    url: "http://deb.nodesource.com/setup_6.x"
+    dest: "{{ var_node }}/nodejs.sh"
+
+- name: Node.js - Set execution permission to script.
+  file:
+    path: "{{ var_node }}/nodejs.sh"
+    mode: "u+x"
+
+- name: Node.js - Execute installation script.
+  shell: "{{ var_node }}/nodejs.sh"
+
+- name: Node.js - Remove installation script.
+  file:
+    path: "{{ var_node }}/nodejs.sh"
+    state: absent
+
+- name: Node.js - Install Node.js
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - build-essential
+    - nodejs
+
+- name: Install NPM
+  apt:
+    name: npm
+    state: present
+
+- name: Node.js | Install bower and gulp globally
+  npm: name={{ item }} state=present global=yes
+  with_items:
+    - bower
+    - gulp
+
+---
+# tasks file for prerequisites
+
+- name: Install git
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+
+
+
+
+
+
+---
+
+- hosts: localhost
+  become: true
+  vars:
+    # variables needed for installation
+    var_node: /tmp
+
+  roles:
+    - prerequisites
+    - mongodb
+    - nodejs
+
+
+
+
+
+
+
+
+Ansible Galaxy is a public library of Ansible roles that you can use to automate tasks in your infrastructure. Roles are pre-packaged collections of variables, tasks, and templates that can be used to automate a specific part of your infrastructure, such as installing and configuring a specific piece of software or deploying a service.
+
+You can use Ansible Galaxy to search for roles that have been shared by other users and use them in your own playbooks. To use a role from Ansible Galaxy, you can install it using the ansible-galaxy command-line tool. For example, to install a role called "nginx" from Ansible Galaxy, you can run the following command:
+
+Copy code
+ansible-galaxy install nginx
+This will download the role and install it in the roles directory in your ansible playbook. You can then use the role in a playbook by specifying it in the roles section of your playbook. For example:
+
+Copy code
+---
+- hosts: all
+  roles:
+    - nginx
+This will run the tasks in the nginx role on all of the hosts specified in the playbook.
+
+Ansible Galaxy also provides a web interface at https://galaxy.ansible.com/ where you can browse and search for roles and get more information about them. You can also use the web interface to share your own roles with the community.
