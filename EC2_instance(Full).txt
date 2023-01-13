@@ -1,0 +1,180 @@
+- hosts: localhost
+  gather_facts: false
+  
+  tasks:
+  - name: Launch ec2 instance
+    amazon.aws.ec2_instance:
+      region: us-east-2
+      key_name: ec2_provision
+      security_group: launch-wizard-1
+      instance_type: t2.micro
+      image_id: ami-xxxxxxxxxxxxxxxxx
+      wait: yes
+      wait_timeout: 500
+      tags:
+        name: appservers
+        os: ubuntu
+      vpc_subnet_id: subnet-xxxxxxxx
+      network:
+        assign_public_ip: true
+        delete_on_termination: true
+      aws_access_key: "{{ aws_access_key|default(lookup('env', 'AWS_ACCESS_KEY')) }}"
+      aws_secret_key: "{{ aws_secret_key|default(lookup('env', 'AWS_SECRET_KEY')) }}"
+    register: ec2
+    delegate_to: localhost
+
+  - debug:
+      msg: "{{ ec2 }}"
+
+The output would be like:
+
+ok: [localhost] => {
+    "msg": {
+        "changed": false,
+        "changes": [],
+        "deprecations": [],
+        "failed": false,
+        "instance_ids": [
+            "i-xxxxxxxxxxxxx574"
+        ],
+        "instances": [
+            {
+                "ami_launch_index": 0,
+                "architecture": "x86_64",
+                "block_device_mappings": [
+                    {
+                        "device_name": "/dev/sda1",
+                        "ebs": {
+                            "attach_time": "2022-08-08T12:20:57+00:00",
+                            "delete_on_termination": true,
+                            "status": "attached",
+                            "volume_id": "vol-xxxxxxxxxxxxxa8b"
+                        }
+                    }
+                ],
+                "capacity_reservation_specification": {
+                    "capacity_reservation_preference": "open"
+                },
+                "client_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "cpu_options": {
+                    "core_count": 1,
+                    "threads_per_core": 1
+                },
+                "ebs_optimized": false,
+                "ena_support": true,
+                "enclave_options": {
+                    "enabled": false
+                },
+                "hibernation_options": {
+                    "configured": false
+                },
+                "hypervisor": "xen",
+                "image_id": "ami-xxxxxxxxxxxxxxxxxxx",
+                "instance_id": "i-xxxxxxxxxxxxxxxxx",
+                "instance_type": "t2.micro",
+                "key_name": "khaled",
+                "launch_time": "2022-08-08T12:20:56+00:00",
+                "maintenance_options": {
+                    "auto_recovery": "default"
+                },
+                "metadata_options": {
+                    "http_endpoint": "enabled",
+                    "http_protocol_ipv6": "disabled",
+                    "http_put_response_hop_limit": 1,
+                    "http_tokens": "optional",
+                    "instance_metadata_tags": "disabled",
+                    "state": "applied"
+                },
+                "monitoring": {
+                    "state": "disabled"
+                },
+                "network_interfaces": [
+                    {
+                        "association": {
+                            "ip_owner_id": "amazon",
+                            "public_dns_name": "ec2-xxxxxxxxxxxxxxxxxxxxxxxxxxxxamazonaws.com",
+                            "public_ip": "xx.xxx.xxx.xx"
+                        },
+                        "attachment": {
+                            "attach_time": "2022-08-08T12:20:56+00:00",
+                            "attachment_id": "eni-attach-xxxxxxxxxxxxxxxxxx",
+                            "delete_on_termination": true,
+                            "device_index": 0,
+                            "network_card_index": 0,
+                            "status": "attached"
+                        },
+                        "description": "",
+                        "groups": [
+                            {
+                                "group_id": "sg-xxxxxxxxxxxxxxxxxxx",
+                                "group_name": "launch-wizard-1"
+                            }
+                        ],
+                        "interface_type": "interface",
+                        "ipv6_addresses": [],
+                        "mac_address": "02:25:8d:2e:99:90",
+                        "network_interface_id": "eni-xxxxxxxxxxxxxxxxxxxx",
+                        "owner_id": "xxxxxxxxxxxx",
+                        "private_dns_name": "ip-xxxxxxxxxxxxxxx.us-east-2.compute.internal",
+                        "private_ip_address": "xx.xxx.xx.xx",
+                        "private_ip_addresses": [
+                            {
+                                "association": {
+                                    "ip_owner_id": "amazon",
+                                    "public_dns_name": "ec2-xxxxxxxxxxxxxxxxxxx.us-east-2.compute.amazonaws.com",
+                                    "public_ip": "xx.xxx.xxx.xx"
+                                },
+                                "primary": true,
+                                "private_dns_name": "ip-xxxxxxxxxxxxx.us-east-2.compute.internal",
+                                "private_ip_address": "xxx.xx.x.xx"
+                            }
+                        ],
+                        "source_dest_check": true,
+                        "status": "in-use",
+                        "subnet_id": "subnet-xxxxxxxxx",
+                        "vpc_id": "vpc-xxxxxxxxxxx"
+                    }
+                ],
+                "placement": {
+                    "availability_zone": "us-east-2a",
+                    "group_name": "",
+                    "tenancy": "default"
+                },
+                "platform_details": "Linux/UNIX",
+                "private_dns_name": "ip-xxxxxxxxxxxxxxxx.us-east-2.compute.internal",
+                "private_dns_name_options": {
+                    "enable_resource_name_dns_a_record": false,
+                    "enable_resource_name_dns_aaaa_record": false,
+                    "hostname_type": "ip-name"
+                },
+                "private_ip_address": "xxx.xx.x.xx",
+                "product_codes": [],
+                "public_dns_name": "ec2-xxxxxxxxxxxxxxxxx.us-east-2.compute.amazonaws.com",
+                "public_ip_address": "xx.xx.xxx.xx",
+                "root_device_name": "/dev/sda1",
+                "root_device_type": "ebs",
+                "security_groups": [
+                    {
+                        "group_id": "sg-xxxxxxxxxxxxxxxxxx",
+                        "group_name": "launch-wizard-1"
+                    }
+                ],
+                "source_dest_check": true,
+                "state": {
+                    "code": 16,
+                    "name": "running"
+                },
+                "state_transition_reason": "",
+                "subnet_id": "subnet-xxxxxxxxxx",
+                "tags": {
+                    "name": "appservers",
+                    "os": "ubuntu"
+                },
+                "usage_operation": "RunInstances",
+                "usage_operation_update_time": "2022-08-08T12:20:56+00:00",
+                "virtualization_type": "hvm",
+                "vpc_id": "vpc-xxxxxxxxxx"
+            }
+        ]
+    }
+}

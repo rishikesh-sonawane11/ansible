@@ -1,0 +1,28 @@
+ubuntu@ip-172-31-34-206:~/ec2$ vim ec2_provision.yml
+---
+- name: Launch EC2 instance
+  hosts: localhost
+  gather_facts: false
+  vars:
+    region: us-east-2
+    instance_type: t2.micro
+    image: ami-0a606d8395a538502
+    keypair: ec2_provision
+    security_group: default
+    tag_Name: myinstance
+
+  tasks:
+    - name: launch ec2 instance
+      ec2_instance:
+        key_name: "{{ keypair }}"
+        security_group: "{{ security_group }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ image }}"
+        region: "{{ region }}"
+        wait: true
+        tags:
+          Name: "{{ tag_Name }}"
+            #vpc_subnet_id: default
+        aws_access_key: AKIAUU4AERZZ3EGNV47F
+        aws_secret_key: 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
+      register: ec2
