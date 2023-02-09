@@ -1,0 +1,72 @@
+---
+- name: Integration of Docker and Ansible
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Configure apt for docker
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Start and enable docker services
+      service:
+        name: "docker"
+        state: started
+        enabled: yes
+
+    - name: Install python3
+      package:
+        name: python3
+        state: present
+      register: x
+
+    - debug:
+        var: x
+
+    - name: Install Docker SDK
+      pip:
+        name: "docker"
+
+    - name: pull image httpd
+      docker_image:
+        name: httpd
+        source: pull
+      register: y
+
+    - debug:
+        var: x
+
+    - name: Create folder
+      file:
+        path: /web
+        state: directory
+
+    - name: Copy content
+      copy:
+        content: "It Works"
+        dest: "/web/index.html"
+
+    - name: Launch Docker Container
+      docker_container:
+        name: "DockerWebServer"
+        image: "httpd"
+        state: started
+        exposed_ports: "80"
+        ports: "8088:80"
+        volumes: /web/:/usr/local/apache2/htdocs/
