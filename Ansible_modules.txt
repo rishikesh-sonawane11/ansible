@@ -1,0 +1,1199 @@
+1. An access control list (ACL) is a list of rules that specifies which users or systems are granted or denied access to a particular object or system 
+resource. Access control lists are also installed in routers or switches, where they act as filters, managing which traffic can access the network.
+https://www.youtube.com/watch?v=iccK4Lw1coY
+---
+- name: testing acl module
+  hosts: localhost
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: create an empty test file
+      file:
+        path: /tmp/blog.txt
+        state: touch
+    - name: set ACL to blog.txt
+      acl:
+        path: /tmp/blog.txt
+        entity: ubuntu
+        etype: group
+        permissions: rw
+        state: present
+
+2. archive - Using the Ansible archive module you can compress files or folders to ‘zip’, ‘.gz’, or ‘bz2’ format. 
+The files or folders to be compressed should be available on the target servers and should have the packages for tar, bzip2, gzip, zip file installed on 
+them. You can have a separate playbook task for installing these packages.
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: Ansible zip file example
+    archive:
+     path: /home/ansible/rishi.txt
+     dest: /home/ansible/rishi.zip
+     format: zip
+The above playbook will zip the file rishi.txt to rishi.zip file
+
+3. Assemble -  Assembles a configuration file from fragments.
+Often a particular program will take a single configuration file and does not support a conf.d style structure where it is easy to build up the 
+configuration from multiple sources. assemble will take a directory of files that can be local or have already been transferred to the system, and 
+concatenate them together to produce a destination file.
+---
+- name: testing assemble module
+  hosts: localhost
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: dir
+      file:
+        path: /tmp/sources
+        state: directory
+
+    - name: copy
+      copy:
+        src: /tmp/{{ item }}
+        dest: /tmp/sources
+      with_items:
+        - t1
+        - t2
+        - t3
+
+    - name: test assemble
+      assemble:
+        src: /tmp/sources
+        dest: /tmp/conf.cfg
+
+4. block in file-This module will insert/update/remove a block of multi-line text surrounded by customizable marker lines.
+https://docs.ansible.com/ansible/2.9/modules/blockinfile_module.html#blockinfile-module
+https://www.youtube.com/watch?v=VBCWe5eMo0c
+---
+- name: testing block in file module
+  hosts: localhost
+  become: yes
+  gather_facts: true
+
+  tasks:
+    - name: create a text file in /tmp
+      blockinfile:
+        path: /tmp/blockinfile.txt
+        create: yes
+        block: |
+          Welcome this is rishi
+          you have been hacked
+        owner: ubuntu
+        mode: "0644"
+
+
+5. find_module - Return a list of files based on specific criteria. Multiple criteria are AND’d together.
+https://docs.ansible.com/ansible/2.9/modules/find_module.html#find-module
+---
+- name: testing find module
+  hosts: localhost
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Recursively find /var/tmp files with last access time greater than 3600 seconds
+      ansible.builtin.find:
+        paths: /tmp
+        age: 3600
+        age_stamp: atime
+        recurse: yes
+      register: res
+    - debug: var=res
+
+    - name: Find /var/log files equal or greater than 10 megabytes and ending with .txt
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: '*.txt'
+        size: 10m
+      register: res2
+    - debug: var=res2
+
+
+6. ini_file-Manage (add, remove, change) individual settings in an INI-style file without having to manage the file as a whole with, say, template or 
+assemble. Adds missing sections if they don’t exist.
+https://docs.ansible.com/ansible/latest/collections/community/general/ini_file_module.html
+---
+- name: ini_file testing
+  hosts: localhost
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Ensure multiple values beverage=coke and beverage=pepsi are in section [drinks] in specified file
+      community.general.ini_file:
+        path: /tmp/conf
+        section: drinks
+        option: beverage
+        values:
+            - coke
+            - pepsi
+        mode: '0600'
+        state: present
+
+7. copy - The copy module copies a file from the local or remote machine to a location on the remote machine.
+- name: Another symbolic mode example, adding some permissions and removing others
+  copy:
+    src: /srv/myfiles/foo.conf
+    dest: /etc/foo.conf
+    owner: foo
+    group: foo
+    mode: u+rw,g-wx,o-rwx
+- name: Copy a new "ntp.conf file into place, backing up the original if it differs from the copied version
+  copy:
+    src: /mine/ntp.conf
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+
+8. fetch - This module works like copy, but in reverse. It is used for fetching files from remote machines and storing them locally in a file tree, 
+organized by hostname. Files that already exist at dest will be overwritten if they are different than the src.
+- name: Store file into /tmp/fetched/host.example.com/tmp/somefile
+  fetch:
+    src: /tmp/somefile
+    dest: /tmp/fetched
+
+- name: Specifying a path directly
+  fetch:
+    src: /tmp/somefile
+    dest: /tmp/prefix-{{ inventory_hostname }}
+    flat: yes
+
+- name: Specifying a destination path
+  fetch:
+    src: /tmp/uniquefile
+    dest: /tmp/special/
+    flat: yes
+
+- name: Storing in a path relative to the playbook
+  fetch:
+    src: /tmp/uniquefile
+    dest: special/prefix-{{ inventory_hostname }}
+    flat: yes
+
+
+9. file - Set attributes of files, symlinks or directories. Alternatively, remove files, symlinks or directories.
+Many other modules support the same options as the file module - including copy, template, and assemble.
+- name: Recursively change ownership of a directory
+  file:
+    path: /etc/foo
+    state: directory
+    recurse: yes
+    owner: foo
+    group: foo
+
+- name: Remove file (delete file)
+  file:
+    path: /etc/foo.txt
+    state: absent
+
+
+10. lineinfile - This module ensures a particular line is in a file, or replace an existing line using a back-referenced regular expression.
+This is primarily useful when you want to change a single line in a file only. See the replace module if you want to change multiple, similar 
+lines or check blockinfile if you want to insert/update/remove a block of lines in a file. 
+- name: Ensure the default Apache port is 8080
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^Listen '
+    insertafter: '^#Listen '
+    line: Listen 8080
+
+- name: Add a line to a file if the file does not exist, without passing regexp
+  lineinfile:
+    path: /tmp/testfile
+    line: 192.168.1.99 foo.lab.net foo
+    create: yes
+
+
+11. patch - Apply patch files using the GNU patch tool. [Patching is a process to repair a vulnerability or a flaw that is identified after 
+the release of an application or a software. Newly released patches can fix a bug or a security flaw, can help to enhance applications with new features, 
+fix security vulnerability.]
+- name: Apply patch to one file
+  ansible.posix.patch:
+    src: /tmp/index.html.patch
+    dest: /var/www/index.html
+
+- name: Apply patch to multiple files under basedir
+  ansible.posix.patch:
+    src: /tmp/customize.patch
+    basedir: /var/www
+    strip: 1
+
+- name: Revert patch to one file
+  ansible.posix.patch:
+    src: /tmp/index.html.patch
+    dest: /var/www/index.html
+    state: absent
+What is patch?
+patch is a command that takes the output from the diff and puts it into a file. Then, it can take the filed output and overwrite another file 
+with the changes. For example, a common use is to use the patch to transfer changes from the changed file to the original file, thus making them identical.
+While this can also be accomplished by copy/pasting the updated file into the original file, patch is much faster and efficient.
+
+
+12. stat - Retrieves facts for a file similar to the Linux/Unix ‘stat’ command.
+---
+- name: stat testing
+  hosts: localhost
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - stat:
+        path: /tmp/conf
+      register: st
+    - fail:
+        msg: "Whoops! file ownership has changed"
+      when: st.stat != 'root'
+# Obtain the stats of /tmp/conf, and check that the file still belongs
+# to 'root'. Fail otherwise.
+
+- stat:
+    path: /path/to/something
+  register: sym
+- debug:
+    msg: "islnk isn't defined (path doesn't exist)"
+  when: sym.stat.islnk is not defined
+- debug:
+    msg: "islnk is defined (path must exist)"
+  when: sym.stat.islnk is defined
+- debug:
+    msg: "Path exists and is a symlink"
+  when: sym.stat.islnk is defined and sym.stat.islnk
+- debug:
+    msg: "Path exists and isn't a symlink"
+  when: sym.stat.islnk is defined and sym.stat.islnk == False
+# Determine if a path exists and is a symlink. Note that if the path does
+# not exist, and we test sym.stat.islnk, it will fail with an error. So
+# therefore, we must test whether it is defined.
+# Run this to understand the structure, the skipped ones do not pass the
+# check performed by 'when'
+- stat:
+    path: /path/to/something
+  register: p
+- debug:
+    msg: "Path exists and is a directory"
+  when: p.stat.isdir is defined and p.stat.isdir
+# Determine if a path exists and is a directory.  Note that we need to test
+# both that p.stat.isdir actually exists, and also that it's set to true.
+
+
+13. Synchronize - the purpose of synchronize module is data transaction between 2 remote hosts. the purpose of copy module is to copy the file from
+the controller to remote machine and fetch is from remote machine to controller while synchronise is used to copy files between 2 remote hosts.
+so the controller here is only a orchestrator. its is not going to take any actual control.
+https://www.youtube.com/watch?v=rNQ4WuNclNQ
+- name: Synchronize two directories on one remote host.
+  synchronize:
+    src: /first/absolute/path
+    dest: /second/absolute/path
+  delegate_to: "{{ inventory_hostname }}"
+- name: Synchronize and delete files in dest on the remote host that are not found in src of localhost.
+  synchronize:
+    src: some/relative/path
+    dest: /some/absolute/path
+    delete: yes
+    recursive: yes
+
+
+14. tempfile - The tempfile module creates temporary files and directories. mktemp command takes different parameters on various systems, 
+this module helps to avoid troubles related to that. Files/directories created by module are accessible only by creator. 
+In case you need to make them world-accessible you need to use file module.
+- name: create temporary file
+  tempfile:
+    state: file
+    suffix: temp
+  register: tempfile_1
+
+- name: use the registered var and the file module to remove the temporary file
+  file:
+    path: "{{ tempfile_1.path }}"
+    state: absent
+  when: tempfile_1.path is defined
+
+
+15. template – Template a file out to a remote server. Templates are processed by the Jinja2 templating language.template_host contains the 
+node name of the template’s machine. template_uid is the numeric user id of the owner.template_path is the path of the template.
+template_fullpath is the absolute path of the template. template_destpath is the path of the template on the remote system (added in 2.8).
+template_run_date is the date that the template was rendered.
+- name: run tasks on all hosts
+  hosts: "*"
+  vars:
+    env: staging
+  tasks: 
+    - name: template file into remote host
+      template:
+        src: myfile.j2
+	  dest: /tmp/something
+	  owner: root
+	  group: root
+	  mode: 0600
+	become: true
+.... myfile.j2 ....
+env = {{ env }}
+local_ip = {{ ansible_host }}
+local_user = {{ ansible_user }}
+
+
+16. unarchive – Unpacks an archive after (optionally) copying it from the local machine
+- name: Extract foo.tgz into /var/lib/foo
+  unarchive:
+    src: foo.tgz
+    dest: /var/lib/foo
+
+- name: Unarchive a file that is already on the remote machine
+  unarchive:
+    src: /tmp/foo.zip
+    dest: /usr/local/bin
+    remote_src: yes
+
+- name: Unarchive a file that needs to be downloaded (added in 2.0)
+  unarchive:
+    src: https://example.com/example.zip
+    dest: /usr/local/bin
+    remote_src: yes
+------------------------------------------------------------------------------------------------------------------------------------------
+
+
+17. Meta - Meta tasks are a special kind of task which can influence Ansible internal execution or state. Meta tasks can be used anywhere within your playbook.
+- name: Refresh inventory to ensure new instances exist in inventory
+  meta: refresh_inventory
+# Example showing how to clear all existing facts of targetted hosts
+- name: Clear gathered facts from all currently targeted hosts
+  meta: clear_facts
+- meta: clear_host_errors
+- name: Reset ssh connection to allow user changes to affect 'current login user'
+  meta: reset_connection
+# Example showing how to end the play for specific targets
+- name: End the play for hosts that run CentOS 6
+  meta: end_host
+  when:
+  - ansible_distribution == 'CentOS'
+  - ansible_distribution_major_version == '6'
+
+
+18. assert –This module asserts that given expressions are true with an optional custom message.
+---
+- name: assert testing
+  hosts: localhost
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: After version 2.7 both 'msg' and 'fail_msg' can customize failing assertion message
+      assert:
+        that:
+          - my_param <= 100
+          - my_param >= 0
+        fail_msg: "'my_param' must be between 0 and 100"
+        success_msg: "'my_param' is between 0 and 100"
+
+- name: use quiet to avoid verbose output
+  assert:
+    that:
+      - my_param <= 100
+      - my_param >= 0
+    quiet: true
+
+
+19. async_status – Obtain status of asynchronous task
+---
+- name: Asynchronous yum task
+  yum:
+    name: docker-io
+    state: present
+  async: 1000
+  poll: 0
+  register: yum_sleeper
+
+- name: Wait for asynchronous job to end
+  async_status:
+    jid: '{{ yum_sleeper.ansible_job_id }}'
+  register: job_result
+  until: job_result.finished
+  retries: 30
+
+
+20. debug – Print statements during execution and can be useful for debugging variables or expressions without necessarily halting the playbook.
+Useful for debugging together with the ‘when:’ directive. 
+# Example that prints the loopback address and gateway for each host
+- debug:
+    msg: System {{ inventory_hostname }} has uuid {{ ansible_product_uuid }}
+
+
+21. fail - This module fails the progress with a custom message. It can be useful for bailing out when a certain condition is met using when.
+# Example playbook using fail and when together
+- fail:
+    msg: The system may not be provisioned according to the CMDB status.
+  when: cmdb_status != "to-be-staged"
+
+
+22. import_playbook – Import a playbook
+- import_playbook: common_roles.yml
+- import_playbook: staging_roles.yml
+  when: env == 'staging'
+- import_playbook: "{{ server_type }}.yml"
+
+
+23. import_role – Import a role into a play. The import_role module allows you to include a role from a separate file into your playbook. 
+Roles are a way to organize and reuse tasks and other playbook elements in a more modular way.
+---
+- name: Import a role from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Import the "common" role
+    import_role:
+      name: "common"
+In this example, the import_role module is used to include the role named "common". The role is defined in a separate file and is located 
+in the roles directory, which is the default location for roles. The tasks and other elements of the role will be included in the playbook 
+and will be executed as part of the playbook run.You can also use the import_role module to specify the path to the role file using the src parameter, 
+or to include multiple roles by specifying a list of role names in the name parameter.
+
+
+24. import_tasks – Import a task list. The import_tasks module allows you to include tasks from a separate playbook file into your playbook. 
+This can be useful if you want to reuse tasks across multiple playbooks or if you want to modularize your playbook by breaking it up into smaller files.
+---
+- name: Import tasks from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Import tasks from tasks.yml
+    import_tasks: "path/to/tasks.yml"
+In this example, the import_tasks module is used to include tasks from the file tasks.yml, which is located in the path/to directory. 
+The tasks in the tasks.yml file will be added to the playbook and will be executed as part of the playbook run.
+You can also use the import_tasks module to include tasks from multiple files by specifying a list of files in the files parameter, 
+or from all files in a directory by specifying the directory path in the dir parameter.
+
+
+25. include – Include a play or task list. The include module allows you to include a playbook or a list of playbooks as a task in your playbook. 
+This can be useful if you want to reuse playbooks or modularize your playbook by breaking it up into smaller files.
+---
+- name: Include a playbook from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Include the "common" playbook
+    include: "path/to/common.yml"
+
+
+26. include_role – Load and execute a role. The include_role module allows you to include a role from a separate file into your playbook. 
+Roles are a way to organize and reuse tasks and other playbook elements in a more modular way.
+---
+- name: Include a role from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Include the "common" role
+    include_role:
+      name: "common"
+In this example, the include_role module is used to include the role named "common". The role is defined in a separate file and is located in the 
+roles directory, which is the default location for roles. The tasks and other elements of the role will be included in the playbook and will be executed 
+as part of the playbook run. You can also use the include_role module to specify the path to the role file using the src parameter, or to include multiple 
+roles by specifying a list of role names in the name parameter.
+
+
+27. include_tasks – Dynamically include a task list.The include_tasks module allows you to include tasks from a separate playbook file into your playbook. 
+This can be useful if you want to reuse tasks across multiple playbooks or if you want to modularize your playbook by breaking it up into smaller files.
+---
+- name: Include tasks from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Include tasks from tasks.yml
+    include_tasks: "path/to/tasks.yml"
+In this example, the include_tasks module is used to include tasks from the file tasks.yml, which is located in the path/to directory. 
+The tasks in the tasks.yml file will be added to the playbook and will be executed as part of the playbook run.
+You can also use the include_tasks module to include tasks from multiple files by specifying a list of files in the files parameter, 
+or from all files in a directory by specifying the directory path in the dir parameter.
+
+
+28. include_vars – Load variables from files, dynamically within a task. The include_vars module allows you to include variables from a 
+separate file or files into a playbook. This can be useful if you want to reuse variables across multiple playbooks or keep sensitive information 
+such as passwords in a separate file.
+---
+- name: Include variables from a separate file
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Include variables from vars.yml
+    include_vars:
+      file: "path/to/vars.yml"
+In this example, the include_vars module is used to include variables from the file vars.yml, which is located in the path/to directory. 
+The variables in the vars.yml file will be made available to the playbook and can be accessed using the {{ variable_name }} syntax.
+You can also use the include_vars module to include variables from multiple files by specifying a list of files in the files parameter, 
+or from all files in a directory by specifying the directory path in the dir parameter.
+
+
+29. wait_for_connection – Waits until remote system is reachable/usable.The wait_for_connection module can be used to pause execution of a 
+playbook until a specified condition is met. This can be useful in cases where you need to wait for a network device to become reachable or for 
+a service to become available before continuing with the playbook.
+---
+- name: Wait for network device to become reachable
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Wait for device to become reachable
+    wait_for_connection:
+      timeout: 60
+      delay: 10
+In this example, the wait_for_connection module is used to pause execution of the playbook until the network device becomes reachable. 
+The timeout parameter specifies the maximum amount of time to wait for the connection to be established, and the delay parameter specifies the 
+amount of time to wait between connection attempts. If the connection is established within the specified timeout period, the playbook will continue 
+executing. If the connection is not established within the timeout period, the playbook will fail.
+
+
+30. Set_fact: This module allows setting new variables.The set_fact module allows you to set new variables or modify existing variables in a playbook. 
+These variables can be used later in the playbook or in templates to customize the behavior of the playbook.
+Variables are set on a host-by-host basis just like facts discovered by the setup module.
+These variables will be available to subsequent plays during an ansible-playbook run.
+Set cacheable to yes to save variables across executions using a fact cache. Variables created with set_fact have different precedence depending on whether 
+they are or are not cached. Per the standard Ansible variable precedence rules, many other types of variables have a higher priority, 
+so this value may be overridden.This module is also supported for Windows targets.
+---
+- name: Set a new variable using the set_fact module
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Set the "greeting" variable
+    set_fact:
+      greeting: "Hello, world!"
+
+  - name: Print the "greeting" variable
+    debug:
+      msg: "{{ greeting }}"
+In this example, the set_fact module is used to set a new variable named "greeting" with the value "Hello, world!". 
+The second task uses the debug module to print the value of the "greeting" variable to the console.
+You can also use the set_fact module to modify existing variables by specifying the variable name and value in the vars parameter, 
+or to set multiple variables at once by specifying a dictionary of variables in the vars parameter.
+
+
+31. wait_for - The wait_for module allows you to pause execution of a playbook until a specified condition is met. This can be useful 
+if you need to wait for a service to become available or for a certain condition to be true before continuing with the playbook.
+---
+- name: Wait for a port to become available
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Wait for port 80 to become available
+    wait_for:
+      port: 80
+      timeout: 60
+      delay: 10
+In this example, the wait_for module is used to pause execution of the playbook until port 80 becomes available on the host. 
+The timeout parameter specifies the maximum amount of time to wait for the port to become available, and the delay parameter specifies 
+the amount of time to wait between connection attempts.
+You can wait for a set amount of time timeout, this is the default if nothing is specified or just timeout is specified. 
+This does not produce an error.Waiting for a port to become available is useful for when services are not immediately available after 
+their init scripts return which is true of certain Java application servers. It is also useful when starting guests with the virt module and 
+needing to pause until they are ready.This module can also be used to wait for a regex match a string to be present in a file.
+this module can also be used to wait for a file to be available or absent on the filesystem.
+this module can also be used to wait for active connections to be closed before continuing, useful if a node is 
+being rotated out of a load balancer pool.
+
+
+32. pause – Pause playbook execution 
+The pause module allows you to pause execution of a playbook for a specified amount of time. This can be useful if you need to wait for a certain 
+amount of time before continuing with the playbook, or if you want to insert a delay between tasks to allow for a service or resource to become available.
+---
+- name: Pause playbook execution for 10 seconds
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Pause execution for 10 seconds
+    pause:
+      seconds: 10
+In this example, the pause module is used to pause execution of the playbook for 10 seconds. You can specify a different amount of time to pause by 
+setting the seconds parameter to a different value.You can also use the pause module to pause execution for a specified amount of time in minutes or 
+hours by setting the minutes or hours parameter, respectively.
+-- Pauses playbook execution for a set amount of time, or until a prompt is acknowledged. 
+All parameters are optional. The default behavior is to pause with a prompt.
+To pause/wait/sleep per host, use the wait_for module.
+You can use ctrl+c if you wish to advance a pause earlier than it is set to expire or if you need to abort a playbook run entirely. 
+To continue early press ctrl+c and then c. To abort a playbook press ctrl+c and then a.The pause module integrates into async/parallelized 
+playbooks without any special considerations (see Rolling Updates). When using pauses with the serial playbook parameter (as in rolling updates)
+you are only prompted once for the current group of hosts.
+This module is also supported for Windows targets
+
+
+33. Lookup plugins - Lookup plugins are an Ansible-specific extension to the Jinja2 templating language.
+You can use lookup plugins to access data from outside sources (files, databases, key/value stores, APIs, and other services) within your playbooks. 
+Like all templating, lookups execute and are evaluated on the Ansible control machine. Ansible makes the data returned by a lookup plugin available 
+using the standard templating system. You can use lookup plugins to load variables or templates with information from external sources. 
+You can create custom lookup plugins.
+
+
+34. async_status – Obtain status of asynchronous task
+The async_status module allows you to check the status of an asynchronous task that was previously started using the async_run module. 
+The async_run module allows you to run a task asynchronously in the background while the playbook continues to execute.
+---
+- name: Check the status of an asynchronous task
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Run a task asynchronously
+    async_run:
+      cmd: "sleep 60"
+    register: async_task
+
+  - name: Check the status of the asynchronous task
+    async_status:
+      jid: "{{ async_task.ansible_job_id }}"
+    register: async_task_status
+In this example, the async_run module is used to run the sleep 60 command asynchronously in the background. The ansible_job_id of the asynchronous task is 
+registered in the async_task variable. The async_status module is then used to check the status of the asynchronous task using the jid (job ID) of the task, 
+which is stored in the ansible_job_id field of the async_task variable. The status of the task is registered in the async_task_status variable.
+You can use the async_status module to check the status of an asynchronous task at any point after it has been started, and use the status information 
+to control the flow of the playbook.
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+35. The ip_netns module allows you to manage Linux network namespaces using the ip command. Network namespaces allow you to create isolated network 
+environments on a single host, allowing you to run multiple instances of a service or simulate multiple hosts on a single physical machine.[So what are 
+network namespaces? Generally speaking, an installation of Linux shares a single set of network interfaces and routing table entries. 
+You can modify the routing table entries using policy routing (here’s an introduction I wrote and here’s a write-up on a potential use case for policy 
+routing), but that doesn’t fundamentally change the fact that the set of network interfaces and routing tables/entries are shared across the entire OS. 
+Network namespaces change that fundamental assumption. With network namespaces, you can have different and separate instances of network interfaces and 
+routing tables that operate independent of each other.]
+---
+- name: Create a network namespace
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Create a network namespace named "test"
+    ip_netns:
+      name: "test"
+      state: "present"
+In this example, the ip_netns module is used to create a network namespace named "test". The state parameter is set to "present" to indicate that 
+the namespace should be created if it does not already exist. You can also use the ip_netns module to delete a network namespace by setting the state 
+parameter to "absent", or to modify the properties of an existing namespace by specifying the desired properties in the module parameters.
+
+
+36. ipify_facts – Retrieve the public IP of your internet gateway. If behind NAT and need to know the public IP of your internet gateway.
+The ipify_facts module is a custom Ansible module that allows you to retrieve the external IP address of the host running the playbook. 
+This can be useful if you want to know the external IP address of the host for use in other tasks or for reporting purposes.
+# Gather IP facts from ipify.org
+- name: Get my public IP
+  ipify_facts:
+
+# Gather IP facts from your own ipify service endpoint with a custom timeout
+- name: Get my public IP
+  ipify_facts:
+    api_url: http://api.example.com/ipify
+    timeout: 20
+---
+- name: Retrieve the external IP address of the host
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Retrieve the external IP address using the ipify_facts module
+    ipify_facts:
+    register: res
+
+  - debug: var=res
+
+In this example, the ipify_facts module is used to retrieve the external IP address of the host.
+The IP address is stored in the ipify_external_ip field of the ansible_facts variable.
+The second task uses the debug module to print the value of the ipify_external_ip field to the console.
+The ipify_facts module uses the ipify service to retrieve the external IP address of the host.
+
+
+37. ipinfoio_facts – Retrieve IP geolocation facts of a host’s IP address. The ipinfoio_facts module is a custom Ansible module that allows you to 
+retrieve information about an IP address or hostname using the ipinfo.io service. This information can include the IP address, location, organization, 
+and other details.
+---
+- name: Retrieve information about an IP address
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Retrieve information about the IP address using the ipinfoio_facts module
+    ipinfoio_facts:
+
+  - name: Print the location of the IP address
+    debug:
+      msg: "The location of the IP address is {{ ansible_facts }}"
+In this example, the ipinfoio_facts module is used to retrieve information about the IP address of localhost. The information is stored in the ansible_facts 
+variable and can be accessed using the ipinfoio_ prefix followed by the name of the field.
+
+
+38. lldp - The lldp module allows you to manage LLDP (Link Layer Discovery Protocol) settings on network devices. LLDP is a networking protocol used by 
+network devices to discover other devices on the same network segment and to exchange information about other directly connected devices.
+---
+- name: Enable LLDP on a network device
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Enable LLDP
+    lldp:
+      state: "present"
+      enabled: True
+In this example, the lldp module is used to enable LLDP on the network device. The state parameter is set to "present" to indicate that LLDP should 
+be configured on the device, and the enabled parameter is set to True to enable LLDP.
+You can also use the lldp module to disable LLDP by setting the enabled parameter to False, or to configure other LLDP options 
+such as the holdtime and timer interval. Consult the documentation for the lldp module for more information on the available options.
+
+
+39. nmcli - The nmcli module allows you to manage NetworkManager on systems that use the nmcli command-line tool. NetworkManager is a network configuration 
+and management tool that is used on many Linux systems.
+---
+- name: Create a network connection using nmcli
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Create a wired connection named "eth0"
+    nmcli:
+      connection.name: "eth0"
+      connection.type: "ethernet"
+      connection.interface-name: "eth0"
+      ipv4.method: "manual"
+      ipv4.addresses: "192.168.1.100/24"
+      ipv4.gateway: "192.168.1.1"
+      ipv4.dns: "8.8.8.8"
+      ipv4.dns-search: "example.com"
+      state: "present"
+In this example, the nmcli module is used to create a new wired network connection named "eth0". The connection is configured with a static IP address, 
+a default gateway, and DNS servers. The state parameter is set to "present" to indicate that the connection should be created if it does not already exist.
+You can also use the nmcli module to modify or delete existing connections, or to manage other aspects of NetworkManager such as devices, access points, 
+and network profiles. 
+
+
+40. nsupdate - Create, update and remove DNS records using DDNS updates. The nsupdate module allows you to update DNS records using the nsupdate 
+command-line tool. This can be useful if you want to dynamically update DNS records in response to events or changes in your infrastructure.
+---
+- name: Add a DNS record using nsupdate
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Add a DNS A record
+    nsupdate:
+      update: "add example.com 86400 A 192.168.1.100"
+      key_name: "example.com"
+      key_secret: "{{ key_secret }}"
+      server: "8.8.8.8"
+In this example, the nsupdate module is used to add a DNS A record for the domain "example.com" with the value "192.168.1.100". 
+The key_name and key_secret parameters specify the name and secret of a key that is used to authenticate the update request, and the server parameter 
+specifies the DNS server to send the update request to.
+You can also use the nsupdate module to delete DNS records or to perform other operations such as adding or deleting DNS resource records or 
+updating the serial number of a zone.
+
+
+41. omapi_host - Manage OMAPI hosts into compatible DHCPd servers. The omapi module allows you to manage DHCP (Dynamic Host Configuration Protocol) servers 
+using the OMAPI (Object Management API) protocol. OMAPI is a protocol for remotely managing DHCP servers and allows you to create, modify, and 
+delete DHCP objects such as leases, shared networks, and subnets.
+---
+- name: Create a DHCP lease using OMAPI
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Create a DHCP lease
+    omapi:
+      host: "dhcp.example.com"
+      port: 7911
+      key_name: "dhcp-key"
+      key_secret: "{{ key_secret }}"
+      object_type: "lease"
+      object_name: "192.168.1.100"
+      state: "present"
+      properties:
+        ip-address: "192.168.1.100"
+        hardware-address: "00:11:22:33:44:55"
+        client-hostname: "host1"
+        ends: "2022/01/01 01:01:01"
+In this example, the omapi module is used to create a DHCP lease for the IP address "192.168.1.100". The object_type parameter is set to "lease" 
+to indicate that a lease object is being created, and the object_name parameter specifies the name of the object, which is the IP address in this case.
+The state parameter is set to "present" to indicate that the object should be created if it does not already exist.
+
+
+42. snmp_facts – Retrieve facts for a device using SNMP. The snmp_facts module allows you to retrieve information from network devices using the Simple 
+Network Management Protocol (SNMP). SNMP is a protocol for managing and monitoring network devices such as routers, switches, and servers.
+---
+- name: Retrieve SNMP information from a network device
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Retrieve SNMP information using the snmp_facts module
+    snmp_facts:
+      version: 2c
+      host: "192.168.1.1"
+      community: "public"
+
+- name: Print the uptime of the device
+  debug:
+    msg: "The uptime of the device is {{ ansible_facts.snmp_uptime }}"
+In this example, the snmp_facts module is used to retrieve SNMP information from the device with the IP address "192.168.1.1" using SNMP version 2c 
+and the community string "public". The retrieved information is stored in the ansible_facts variable and can be accessed using the snmp_ prefix followed 
+by the name of the field.
+The second task uses the debug module to print the value of the snmp_uptime field to the console. This field contains the uptime of the device in 
+milliseconds.
+
+
+43. get_url - The get_url module allows you to download a file from a URL and store it locally on the host running the playbook. This can be useful if you 
+want to download files from a remote server as part of your playbook run.
+---
+- name: Download a file using get_url
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Download a file from a URL
+    get_url:
+      url: "http://www.example.com/file.txt"
+      dest: "/tmp/file.txt"
+      mode: 0644
+In this example, the get_url module is used to download the file at the URL "http://www.example.com/file.txt" and save it to the /tmp directory on the host. 
+The mode parameter specifies the file permissions for the downloaded file.
+You can also use the get_url module to specify additional parameters such as the username and password for HTTP basic authentication, 
+the HTTP headers to include in the request, or the timeout for the request.
+
+
+44. slurp – Slurps a file from remote nodes. This module works like fetch. It is used for fetching a base64- encoded blob containing the data in a remote 
+file.The slurp module allows you to transfer a file from the local host running the playbook to the remote hosts or vice versa. 
+This can be useful if you want to copy files between hosts as part of your playbook run.
+---
+- name: Transfer a file from the local host to the remote hosts using slurp
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Transfer a file from the local host to the remote hosts
+    slurp:
+      src: "path/to/local/file.txt"
+      dest: "path/to/remote/file.txt"
+      validate_checksum: yes
+In this example, the slurp module is used to transfer the file at the local path "path/to/local/file.txt" to the remote path "path/to/remote/file.txt" 
+on the remote hosts. The validate_checksum parameter is set to yes to enable checksum validation, which ensures that the file is transferred correctly.
+You can also use the slurp module to transfer files from the remote hosts to the local host by specifying the direction parameter as "get".
+
+
+45. uri – Interacts with webservices. Interacts with HTTP and HTTPS web services and supports Digest, Basic and WSSE HTTP authentication mechanisms.
+The uri module allows you to send HTTP requests to a server and process the response. This can be useful if you want to interact with a web service or 
+API as part of your playbook run.
+---
+- name: Send an HTTP GET request using the uri module
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Send an HTTP GET request and process the response
+    uri:
+      url: "http://www.example.com/api/endpoint"
+      method: "GET"
+      return_content: yes
+    register: response
+
+- name: Print the response status code
+  debug:
+    msg: "The response status code is {{ response.status }}"
+
+- name: Print the response body
+  debug:
+    msg: "The response body is {{ response.content }}"
+In this example, the uri module is used to send an HTTP GET request to the URL "http://www.example.com/api/endpoint". 
+The return_content parameter is set to yes to include the response body in the returned data. The returned data is stored in the response 
+variable and can be accessed using the response. prefix followed by the name of the field.
+The second and third tasks use the debug module to print the status code and the body of the response to the console.
+You can also use the uri module to send other types of HTTP requests such as POST, PUT, or DELETE, or to specify additional parameters such 
+as headers or query parameters.
+
+
+46. infinity – Manage Infinity IPAM using Rest API. Infinity is a proprietary IP address management (IPAM) platform developed by SolarWinds. It provides 
+a web-based interface for managing and tracking 
+IP addresses and other network assets.Some of the features of Infinity include:
+Automated IP address discovery and tracking
+Customizable IP address and network layouts
+Customizable dashboards and reports
+Integration with other SolarWinds products such as Network Performance Monitor and Network Configuration Manager
+Infinity is designed for network administrators and IT professionals who need to manage and track large numbers of IP addresses and other network assets. 
+It is available as a standalone product or 
+as part of a suite of IT management tools offered by SolarWinds.
+---
+- hosts: localhost
+  connection: local
+  strategy: debug
+  tasks:
+    - name: Reserve network into Infinity IPAM
+      infinity:
+        server_ip: 80.75.107.12
+        username: username
+        password: password
+        action: reserve_network
+        network_name: reserve_new_ansible_network
+        network_family: 4
+        network_type: lan
+        network_id: 1201
+        network_size: /28
+      register: infinity
+
+
+47. The ldap_attr module is an Ansible module that allows you to manage attributes of LDAP (Lightweight Directory Access Protocol) objects. 
+LDAP is a standard protocol for accessing directory services over a network, and is commonly used to store and manage user, group, and other 
+types of information.
+---
+- name: Add an attribute to an LDAP object using ldap_attr
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Add an attribute to an LDAP object
+    ldap_attr:
+      dn: "cn=user1,dc=example,dc=com"
+      attr: "description"
+      value: "This is a test user"
+      server_uri: "ldap://ldap.example.com"
+      bind_dn: "cn=admin,dc=example,dc=com"
+      bind_pw: "{{ bind_password }}"
+      state: present
+In this example, the ldap_attr module is used to add a description attribute with the value "This is a test user" to the LDAP object with the 
+distinguished name "cn=user1,dc=example,dc=com". The server_uri parameter specifies the URI of the LDAP server, and the bind_dn and bind_pw parameters 
+specify the DN and password of a bind user that has permission to modify the LDAP object.
+The state parameter is set to present to indicate that the attribute should be added if it does not already exist.
+You can also use the ldap_attr module to delete
+
+
+48. ldap_entry – Add or remove LDAP entries. The ldap_entry module is an Ansible module that allows you to manage LDAP (Lightweight Directory Access 
+Protocol) entries. LDAP is a standard protocol for accessing directory services over a network, and is commonly used to store and manage user, group, 
+and other types of information.
+---
+- name: Create an LDAP entry using ldap_entry
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Create an LDAP entry
+    ldap_entry:
+      dn: "cn=user1,dc=example,dc=com"
+      objectClass:
+        - "top"
+        - "person"
+        - "organizationalPerson"
+        - "inetOrgPerson"
+      cn: "User 1"
+      sn: "User"
+      givenName: "1"
+      displayName: "User 1"
+      uid: "user1"
+      userPassword: "{{ password }}"
+      mail: "user1@example.com"
+      server_uri: "ldap://ldap.example.com"
+      bind_dn: "cn=admin,dc=example,dc=com"
+      bind_pw: "{{ bind_password }}"
+      state: present
+In this example, the ldap_entry module is used to create an LDAP entry with the distinguished name "cn=user1,dc=example,dc=com" and the specified object 
+classes, attributes, and values. The server_uri parameter specifies the URI of the LDAP server, and the bind_dn and bind_pw parameters specify the DN and 
+password of a bind user that has permission to create the LDAP entry. The state parameter is set to present to indicate that the entry should be created 
+if it does not already exist.
+You can also use the ldap_entry module to delete LDAP entries or to modify existing entries by specifying the state parameter as "absent" or "present", 
+respectively.
+
+
+49. ldap_passwd – Set passwords in LDAP. The ldap_passwd module is an Ansible module that allows you to change the password of an LDAP 
+(Lightweight Directory Access Protocol) user. LDAP is a standard protocol for accessing directory services over a network, and is commonly used 
+to store and manage user, group, and other types of information.
+---
+- name: Change the password of an LDAP user using ldap_passwd
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Change the password of an LDAP user
+    ldap_passwd:
+      dn: "cn=user1,dc=example,dc=com"
+      password: "{{ new_password }}"
+      server_uri: "ldap://ldap.example.com"
+      bind_dn: "cn=admin,dc=example,dc=com"
+      bind_pw: "{{ bind_password }}"
+In this example, the ldap_passwd module is used to change the password of the LDAP user with the distinguished name "cn=user1,dc=example,dc=com" 
+to the value specified in the new_password variable. The server_uri parameter specifies the URI of the LDAP server, and the bind_dn and bind_pw 
+parameters specify the DN and password of a bind user that has permission to change the password of the LDAP user.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+50. add_host – Add a host (and alternatively a group) to the ansible-playbook in-memory inventory. The add_host module is an Ansible module that allows 
+you to add a host to the inventory during a playbook run. This can be useful if you need to dynamically add hosts to the inventory based on the results 
+of a task or a variable.
+---
+- name: Add a host to the inventory using add_host
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Add a host to the inventory
+    add_host:
+      name: "{{ hostname }}"
+      groups:
+        - group1
+        - group2
+      ansible_host: "{{ ansible_host }}"
+      ansible_user: "{{ ansible_user }}"
+      ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file }}"
+In this example, the add_host module is used to add a host to the inventory with the name specified in the hostname variable. 
+The groups parameter specifies the groups that the host should be added to, and the ansible_host, ansible_user, and ansible_ssh_private_key_file 
+parameters specify the connection details for the host.
+You can also use the add_host module to specify additional variables for the host, such as ansible_port or ansible_ssh_common_args. 
+
+
+51. group_by – Create Ansible groups based on facts. The group_by module is an Ansible module that allows you to group hosts together based on a 
+specified variable. This can be useful if you want to apply different tasks or variables to different groups of hosts based on their characteristics.
+---
+- name: Group hosts by operating system using group_by
+  hosts: all
+  gather_facts: true
+
+  tasks:
+  - name: Group hosts by operating system
+    group_by:
+      key: "{{ ansible_os_family }}"
+    register: os_groups
+
+  - name: Print the groups
+    debug:
+      msg: "{{ item.key }}: {{ item.value }}"
+    loop: "{{ os_groups.groups }}"
+In this example, the group_by module is used to group the hosts by their ansible_os_family variable, which is automatically gathered by Ansible and 
+contains the name of the host's operating system family (e.g. "Debian", "RedHat", etc.). The resulting groups are stored in the os_groups variable, 
+which is a dictionary containing the keys and values of the groups. The second task uses the debug module to print the keys and values of the groups to 
+the console. The loop parameter is used to iterate over the groups in the os_groups.groups list.
+You can also use the group_by module to group hosts by other variables, such as custom facts or variables defined in the inventory or playbook.
+
+
+52. mail – Send an email. This module is useful for sending emails from playbooks. One may wonder why automate sending emails? In complex environments 
+there are from time to time processes that cannot be automated, either because you lack the authority to make it so, or because not everyone agrees to 
+a common approach. If you cannot automate a specific step, but the step is non-blocking, sending out an email to the responsible party to make them 
+perform their part of the bargain is an elegant way to put the responsibility in someone else’s lap. Of course sending out a mail can be equally useful 
+as a way to notify one or more people in a team that a specific action has been (successfully) taken.
+---
+    - name: Sending email to the users
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        username: elipsis007711@gmail.com
+        password: ddymmvdmkcboelkb
+        to: rishikeshsonawane1465@gmail.com
+        subject: Get Your Credentials
+        body: Your login credentials has been generated. Find the credentials in the below attached CSV file.
+        attach: /tmp/user.csv
+      delegate_to: localhost
+
+---
+# send an email using the mail module
+- name: send an email
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: myuser
+    password: mypass
+    to: recipient@example.com
+    subject: This is the subject
+    body: This is the body of the email
+    sender: sender@example.com
+This will send an email with the subject "This is the subject" and the body "This is the body of the email" from "sender@example.com" to 
+"recipient@example.com" using the SMTP server at "smtp.example.com" on port 587. The username and password fields should contain the credentials 
+for an account on the SMTP server.
+You can also specify multiple recipients by separating their email addresses with commas, and you can include attachments by specifying the attach 
+field as a list of file paths. For example:
+
+- name: send an email with attachments
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: myuser
+    password: mypass
+    to: recipient1@example.com,recipient2@example.com
+    subject: This is the subject
+    body: This is the body of the email
+    sender: sender@example.com
+    attach:
+      - /path/to/attachment1.pdf
+      - /path/to/attachment2.jpg
+This will send an email with the same subject and body as before, but with two attachments: "attachment1.pdf" and "attachment2.jpg".
+
+
+53. slack – Send Slack notifications. The slack module is an Ansible module that allows you to send messages to Slack, a popular team communication 
+platform. This can be useful for sending notifications or alerts to a Slack channel as part of an Ansible playbook.
+To use the slack module, you will need to create a Slack bot and obtain an API token. You can find instructions on how to do this in the Slack 
+documentation.
+---
+- name: Send a message to a Slack channel using slack
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Send a message to a Slack channel
+    slack:
+      token: "{{ slack_api_token }}"
+      channel: "#general"
+      msg: "Ansible playbook completed"
+In this example, the slack module is used to send a message to the #general channel. The token parameter specifies the API token of the Slack bot, 
+and the msg parameter specifies the message to be sent.
+You can also use the slack module to specify additional parameters such as the username of the bot, the icon emoji, or the attachment fields
+
+
+54. telegram – module for sending notifications via telegram. The telegram module is an Ansible module that allows you to send messages to Telegram, 
+a messaging app with a focus on speed and security. This can be useful for sending notifications or alerts to a Telegram chat or channel as part of an 
+ansible playbook. To use the telegram module, you will need to create a Telegram bot and obtain an API token.
+---
+- name: Send a message to a Telegram chat using telegram
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Send a message to a Telegram chat
+    telegram:
+      api_key: "{{ telegram_api_token }}"
+      chat_id: "{{ telegram_chat_id }}"
+      text: "Ansible playbook completed"
+In this example, the telegram module is used to send a message to a Telegram chat with the specified chat_id. The api_key parameter specifies the API 
+token of the Telegram bot, and the text parameter specifies the message to be sent. You can also use the telegram module to specify additional parameters 
+such as the message format, the disable_web_page_preview option, or the reply_to_message_id.
+
+
+55. twilio – Sends a text message to a mobile phone through Twilio. The twilio module is an Ansible module that allows you to send text messages to 
+mobile phones through Twilio, a communications platform for building SMS, voice, and messaging applications. This can be useful for sending notifications 
+or alerts to a mobile phone as part of an ansible playbook.
+To use the twilio module, you will need to create a Twilio account and obtain an Account SID and Auth Token
+---
+- name: Send a text message to a mobile phone using twilio
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Send a text message to a mobile phone
+    twilio:
+      account_sid: "{{ twilio_account_sid }}"
+      auth_token: "{{ twilio_auth_token }}"
+      to: "{{ phone_number }}"
+      from_: "{{ twilio_phone_number }}"
+      body: "Ansible playbook completed"
+In this example, the twilio module is used to send a text message to the phone number specified in the phone_number variable. 
+The account_sid and auth_token parameters specify the Account SID and Auth Token of the Twilio account, and the from_ parameter specifies the 
+Twilio phone number that the message will be sent from. The body parameter specifies the message to be sent.
+You can also use the twilio module to specify additional parameters such as the media_url or the status_callback.
+
+LDAP: light weight directory access protocol supported by many platforms like windows linux etc. by def it is a standard protocol that works over IP network
+for accessing and maintaining directory data. 
+big companies store their employee data in an LDAP server through LDAP protocol any other employee of the organization can have access to the data.
+the benefit is LDAP directory is stored and retrived in a simple format. LDAP has a defined port. can be accessed through port 389 TCP/UDP. and LDAP over SSL
+which is known as LDAPS can be accessed through port number 636.  
+
