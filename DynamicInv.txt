@@ -1,0 +1,238 @@
+for proper exp go here: https://www.linkedin.com/pulse/enhancing-agility-ansible-aws-dynamic-inventory-setup-sonawane%3FtrackingId=ZOEblZfST564Gk%252BH%252B%252Bnb4A%253D%253D/?trackingId=ZOEblZfST564Gk%2BH%2B%2Bnb4A%3D%3D
+
+
+Ansible is a popular open-source automation tool that allows administrators to automate repetitive tasks, deploy applications, and manage configurations. Amazon Web Services (AWS) is a cloud computing platform that provides a range of services, including compute, storage, and networking.
+Tap here to know more on Ansible.
+In this article, we will dive into the concept of `Dynamic Inventory` in Ansible and walk through the steps to set up Ansible AWS Dynamic Inventory. By the end of this article, you will understand what dynamic inventory is and how it can enable you to manage your AWS infrastructure more efficiently using Ansible.
+Agenda:
+What is Ansible Dynamic Inventory?
+Set up Ansible AWS Dynamic Inventory.
+Grouping EC2 Resources With Ansible Dynamic Inventory.
+Execute ansible commands with EC2 Dynamic Inventory.
+Using Dynamic Inventory Inside Playbook.
+
+What is Ansible Dynamic Inventory?
+Firstly, let's take a closer look at the `Dynamic Inventory in Ansible` and explore its meaning and purpose. In Ansible, inventory refers to the list of hosts that Ansible can manage, and dynamic inventory is a feature that allows you to create or update the inventory dynamically based on external data sources. Dynamic inventory is especially useful in `cloud environments` where hosts can be created or destroyed dynamically.
+The dynamic inventory feature in Ansible enables you to manage hosts that are not listed in the static inventory file but can be retrieved from an external data source. Ansible has built-in support for dynamic inventory for cloud platforms like `AWS, Azure, GCP, and others, as well as virtualization systems like VMware, OpenStack, and others`. You can also write your own scripts or plugins to generate a dynamic inventory.
+Ansible dynamic inventory enables you to define hosts and groups dynamically, which is helpful when you are managing a large infrastructure that is changing frequently. Dynamic inventory allows you to specify the hosts' metadata like hostname, IP address, and variables associated with the host that are retrieved dynamically.
+Dynamic inventory can be used to filter the hosts using various filters like IP addresses, hostnames, or any other metadata associated with the host. You can also use dynamic inventory to group hosts based on the metadata associated with them. The groups can be used to run playbooks or tasks on a specific set of hosts.
+With respect to AWS, dynamic inventory is an ansible plugin that makes an API call to AWS to get the instance information in the run time. It gives you the ec2 instance details dynamically to manage the AWS infrastructure.
+In summary, dynamic inventory is an essential feature of Ansible that allows you to manage your infrastructure dynamically, especially in a cloud or virtualization environment. It enables you to create or update inventory dynamically based on external data sources and filter hosts based on metadata associated with them. Dynamic inventory also enables you to group hosts and run playbooks or tasks on a specific set of hosts. With dynamic inventory, you can automate the management of your infrastructure more efficiently and scale it up or down as required.
+
+Setup Ansible AWS Dynamic Inventory
+Complete Wokflow of the setup
+Basic Architecture/Workflow 
+In this tutorial, I will guide you through the process of setting up a dynamic inventory on AWS using `boto` and the `AWS ec2 Ansible plugin`.
+I recommend following the steps carefully to ensure a successful setup.
+Step 1: Ensure you have python3 & pip3 installed in your Ansible server.
+Most Linux operating system comes with Python3. You can validate it using the following command.
+python3 --version
+If you don’t have python3, you can install it using the following command.
+For centos, Redhat,
+sudo yum install python3 -y
+sudo yum –y install python3-pip
+For Debian, Ubuntu,
+sudo apt-get install python3 -y
+sudo apt-get install python3-pip -y
+Step 2: Install the `boto3` library. Ansible uses the boot core to make API calls to AWS to retrieve ec2 instance details.
+The AWS SDK for Python (Boto3) provides a Python API for AWS infrastructure services. Using the SDK for Python, you can build applications on top of Amazon S3, Amazon EC2, Amazon DynamoDB, and more.
+sudo pip3 install boto3
+If you have used the `Ansible ppa` for installation, install pip using the following command.
+sudo apt-get install python-boto3
+or else you might see the following error.
+ERROR! The ec2 dynamic inventory plugin requires boto3 and botocore.
+Step 3: Create an inventory directory under /opt and cd into the directory.
+sudo mkdir -p /opt/ansible/inventory
+cd /opt/ansible/inventory
+Step 4: Create a file named `aws_ec2.yaml` in the inventory directory.
+sudo vi aws_ec2.yaml
+To configure the file, please copy the following configuration.
+ubuntu@ip-172-31-34-206:/opt/ansible/inventory$ cat aws_ec2.yaml
+---
+plugin: amazon.aws.aws_ec2
+
+filters:
+  # All instances with their state as `running`
+  instance-state-name: running
+
+aws_access_key: <YOUR-AWS-ACCESS-KEY-HERE>
+aws_secret_key: <YOUR-AWS-SECRET-KEY-HERE>
+keyed_groups:
+  - key: tags
+    prefix: tag
+
+
+ansible_ssh_private_key_file: /home/ubuntu/.ssh/id_rsa
+In case you are running an Ansible server outside the AWS environment, kindly replace and add your AWS access key and secret to the configuration file.
+It is essential to note that this file should never be committed to public Git repositories.
+If your ansible server is running inside the AWS environment, attach an ec2 instance role with the required AWS ec2 permissions (Mostly describe instances). This way you don’t have to add the access and secret key in the configuration. Ansible will automatically use the attached role to make the AWS API calls.
+Step 5: Open the `/etc/ansible/ansible.cfg` file.
+sudo vi /etc/ansible/ansible.cfg
+Please take a look at the [inventory] section and add the following line to enable the ec2 plugin.
+enable_plugins = aws_ec2
+It should look something like this:
+[inventory]
+enable_plugins = aws_ec2
+
+[defaults]
+inventory= /opt/ansible/inventory/aws_ec2.yaml
+host_key_checking= False
+private_key_file = /home/ubuntu/.ssh/id_rsa
+remote_user = ec2-user
+deprecation_warnings= False
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user=root
+become_ask_pass = False
+Step 6: Now, test the dynamic inventory configuration by listing the ec2 instances.
+ansible-inventory -i /opt/ansible/inventory/aws_ec2.yaml --list
+The above command returns the list of ec2 instances with all their parameters in JSON format.
+If you want to use the dynamic inventory as a default Ansible inventory, edit the /etc/ansible/ansible.cfg file and search for inventory parameters under defaults. Change the inventory parameter value as shown below.
+inventory      = /opt/ansible/inventory/aws_ec2.yaml
+Now if you run the inventory list command without passing the inventory file, Ansible looks for the default location and picks up the aws_ec2.yaml inventory file.
+Step 6: Execute the following command to test if Ansible is able to ping all the machines returned by the dynamic inventory.
+ansible all -m ping
+OUTPUT:
+ec2-65-2-177-19.ap-south-1.compute.amazonaws.com | SUCCESS => 
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ec2-3-110-162-83.ap-south-1.compute.amazonaws.com | SUCCESS => {
+   "ansible_facts": { 
+       "discovered_interpreter_python": "/usr/bin/python3.7" 
+   }, 
+   "changed": false, 
+   "ping": "pong"
+}
+ec2-15-206-159-111.ap-south-1.compute.amazonaws.com | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ec2-3-111-213-153.ap-south-1.compute.amazonaws.com | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}{
+Grouping EC2 Resources With Ansible Dynamic Inventory
+With AWS Ansible dynamic inventory, you can run Ansible playbooks or ad-hoc commands on individual instances or groups of instances that have been categorized or grouped according to specific tags, regions, or other EC2 parameters.
+You can group instances using tags, instances type, instance names, custom filters, and more. Take a look at all supported filters and keyed groups from here.
+Example:
+---
+plugin: aws_ec2
+
+aws_access_key: <YOUR-AWS-ACCESS-KEY-HERE>
+aws_secret_key: <YOUR-AWS-SECRET-KEY-HERE>
+
+regions:
+  - ap-south-1
+
+keyed_groups:
+  - key: tags
+    prefix: tag
+  - prefix: instance_type
+    key: instance_type
+  - key: placement.region
+    prefix: aws_region
+Please go ahead and execute the following command to list the dynamic inventory groups.
+ansible-inventory --graph
+You will see an output like the following with all instances grouped under tags, zones, and regions with dynamic group names.
+root@ip-172-31-34-206:/opt/ansible/inventory# ansible-inventory -i aws_ec2.yaml --graph
+@all:
+  |--@aws_ec2:
+  |  |--ec2-15-206-159-111.ap-south-1.compute.amazonaws.com
+  |  |--ec2-3-110-162-83.ap-south-1.compute.amazonaws.com
+  |  |--ec2-3-111-213-153.ap-south-1.compute.amazonaws.com
+  |  |--ec2-65-2-177-19.ap-south-1.compute.amazonaws.com
+  |--@tag_Name_loadbalancer:
+  |  |--ec2-3-110-162-83.ap-south-1.compute.amazonaws.com
+  |--@tag_Name_webserver:
+  |  |--ec2-15-206-159-111.ap-south-1.compute.amazonaws.com
+  |  |--ec2-3-111-213-153.ap-south-1.compute.amazonaws.com
+  |  |--ec2-65-2-177-19.ap-south-1.compute.amazonaws.com
+  |--@ungrouped:
+Now you can execute Ansible ad-hoc commands or playbook against these groups.
+
+Execute Ansible Commands With ec2 Dynamic Inventory
+Let's evaluate the EC2 dynamic inventory by running a few Ansible ad-hoc commands.
+Note: Make sure you have the SSH keys or user/password setup in your ansible configuration for Ansible to connect to it for executing the commands.
+Execute Ping
+I am going to execute the ping command with all instances:
+ ansible all -m ping
+Provided that all the configurations are correct, the resulting output should resemble something similar to the following.
+ec2-65-2-177-19.ap-south-1.compute.amazonaws.com | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ec2-3-110-162-83.ap-south-1.compute.amazonaws.com | SUCCESS => {
+   "ansible_facts": { 
+       "discovered_interpreter_python": "/usr/bin/python3.7" 
+   }, 
+   "changed": false, 
+   "ping": "pong"
+}
+ec2-15-206-159-111.ap-south-1.compute.amazonaws.com | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ec2-3-111-213-153.ap-south-1.compute.amazonaws.com | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.7"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+Using Dynamic Inventory Inside Playbook
+If you want to use dynamic inventory inside the playbook, you just need to mention the group name in the hosts variable like `aws_region_us_west_2`.
+I have executed the playbook on all the hosts in my dynamic inventory.
+---
+- name: Ansible Test Playbook
+  gather_facts: false
+  hosts: all
+  tasks:
+
+    - name: Run Shell Command
+      command: echo "Hello World"
+OUTPUT -
+PLAY RECAP ****************************************************************************************************
+ec2-15-206-159-111.ap-south-1.compute.amazonaws.com : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ec2-3-110-162-83.ap-south-1.compute.amazonaws.com : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ec2-3-111-213-153.ap-south-1.compute.amazonaws.com : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ec2-65-2-177-19.ap-south-1.compute.amazonaws.com : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+In conclusion, implementing dynamic inventory in Ansible with AWS can greatly enhance the scalability and efficiency of your infrastructure management. With dynamic inventory, you can automate the process of discovering and updating inventory information, eliminating the need for manual updates and reducing the risk of errors. Additionally, by leveraging the powerful features of AWS, such as tags and filters, you can create highly customizable and flexible inventory configurations that can adapt to your evolving infrastructure needs.
+Through this article, we have explored the basics of dynamic inventory in Ansible and demonstrated how it can be integrated with AWS. We have also provided some tips and best practices to help you set up and maintain your dynamic inventory. With these insights, you can take advantage of the full potential of dynamic inventory in Ansible and AWS to streamline your infrastructure management and achieve better results. So, if you're looking to optimize your infrastructure management workflow, give dynamic inventory a try and see the benefits for yourself.
+Here we reached the end of the task! :)
+If you’ve any queries regarding this article, it will be my pleasure to help you, just ping me on Rishikesh Sonawane. I'll be glad to help you out.
+Join our Cloud and DevOps community for more Cloud and DevOps Learnings here- Guys in the Cloud and Guys in the Cloud YouTube channel.
+Happy Learning! :)
+If you're interested in my thoughts and ideas on various topics, I invite you to check out my Medium profile where I regularly share my articles and insights. You can find my profile at: Rishikesh Sonawane at medium. I would love to hear your feedback and opinions on my writing.
+Thank you for taking the time to read my articles!
+~ Rishikesh Sonawane.
+Published by
+Rishikesh SonawaneStatus is online
+Rishikesh Sonawane
+Software Engineer @Persistent Systems || Blogger || DevOps
+Published • 1d
+2 articles
+**** Hey Folks *****
+-> Excited to share my latest article on "Enhancing Agility with Ansible and AWS Dynamic Inventory Setup for Infrastructure Management". 
+
+-> In this article, I have explored the basics of dynamic inventory in Ansible and demonstrated how it can be integrated with AWS. I have also provided some tips and best practices to help you set up and maintain your dynamic inventory. 
+With these insights, you can take advantage of the full potential of dynamic inventory in Ansible and AWS to streamline your infrastructure management and achieve better results. 
+So, if you're looking to optimize your infrastructure management workflow, give dynamic inventory a try and see the benefits for yourself.
