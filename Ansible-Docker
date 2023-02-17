@@ -1,0 +1,164 @@
+Welcome to the world of automation!;)
+In this article, we will delve into the concepts of Ansible and Docker and explore how we can leverage the power of Ansible Playbooks to manage Docker containers. Our focus will be on writing an Ansible Playbook that performs various operations on the managed nodes. The process involves crafting a script using Ansible Playbooks and configuring Docker to achieve our desired outcomes. The first thing we should know is, What is Ansible?, and What is Docker?
+First, let us talk about Ansible -
+Ansible is an open-source software platform for automating and configuring computer systems. It provides a simple way to automate repetitive tasks, deploy applications, and manage large-scale infrastructure safely and predictably.
+Ansible uses declarative language to describe the desired state of the system, rather than the specific steps needed to achieve that state. This makes it easier to write playbooks (Ansible's term for automation scripts) that are both human-readable and reusable.
+Ansible can be used to automate a wide range of tasks, from installing and configuring the software to managing the entire cloud infrastructure. It can also be used to manage multiple systems at the same time, making it a useful tool for system administrators, DevOps engineers, and other IT professionals.
+One of the key advantages of Ansible is its simplicity. Unlike many other automation tools, Ansible doesn't require complex coding skills or a deep understanding of underlying technology. This makes it a popular choice for automating routine IT tasks and managing large-scale infrastructure.
+To know more about Ansible refer to "Getting Started with Ansible".
+Now let us take a brief note on the Docker-
+Docker is a popular open-source platform for developing, shipping, and running applications. It provides a way to package an application and its dependencies into a container, which is a standalone executable package that includes everything needed to run the application.
+Containers are isolated from each other and the host operating system, so they can run consistently across different environments and infrastructures. This makes it easier to deploy and run applications, as you can be sure that your application will run the same way in development, testing, and production environments.
+Docker also provides a centralized repository, the Docker Hub, where developers can store and distribute their containers. This makes it easier to share applications and collaborate with others, as well as reuse existing containers that are available on the hub.
+In addition to simplifying application deployment and management, Docker also provides several other benefits, such as improved resource utilization, enhanced security, and faster deployment times. Whether you're a developer building a new application, or an IT professional responsible for managing a large-scale infrastructure, Docker can help you achieve your goals more efficiently and effectively.
+Now how we can Integrate Ansible with Docker?
+There are some following steps to perform the practice are as follows.
+🔹 Install and Configure Docker
+🔹 Start and enable Docker services
+🔹 Pull the httpd server image from the Docker Hub
+🔹 Run the httpd container and expose it to the public
+🔹 Copy the HTML code in the /var/www/html directory and start the web server
+Prerequisite - Install two VMs in the system. One as Controller Node and the other as Managed Node and download ansible in Controller Node.
+With all preparations in place, it is now time to commence the execution phase.
+To verify the version of Ansible installed on the Controller node, run the command.
+ansible --version
+2. I plan to carry out the task on my localhost. However, if you need to perform the task on remote hosts, it is essential to properly specify the hosts file/inventory. Please take a moment to review the inventory file for proper configuration. To check the inventory file:
+cat /etc/ansible/hosts
+The output should look like this:
+<remote_host_ip> ansible_ssh_user=<user> ansible_ssh_pass=<password>
+3. Also check the configuration file of Ansible.
+cat /etc/ansible/ansible.cfg
+The output should look like this:
+[defaults]
+inventory = /etc/ansible/hosts
+host_key_checking=false
+4. With the successful installation and configuration of Ansible, we proceed to examine the list of inventories by the command:
+ansible all --list-hosts
+This should return the hosts you specified in the hosts /inventory file.
+5. We use the following method to verify the connection with the managed node:
+ansible all -m ping
+6. Create a docker.yml file for the playbook
+vim docker.yml
+7. In docker.yml follow these modules and commands -
+--
+- name: Integration of Docker and Ansible
+  hosts: localhost
+  become: yes
+
+
+  tasks:
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+
+    - name: Configure apt for docker
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+
+    - name: Start and enable docker services
+      service:
+        name: "docker"
+        state: started
+        enabled: yes
+
+
+    - name: Install python3
+      package:
+        name: python3
+        state: present
+      register: x
+
+
+    - debug:
+        var: x
+
+
+    - name: Install Docker SDK
+      pip:
+        name: "docker"
+
+
+    - name: pull image httpd
+      docker_image:
+        name: httpd
+        source: pull
+      register: y
+
+
+    - debug:
+        var: x
+
+
+    - name: Create folder
+      file:
+        path: /web
+        state: directory
+
+
+    - name: Copy content
+      copy:
+        content: "It Works"
+        dest: "/web/index.html"
+
+
+    - name: Launch Docker Container
+      docker_container:
+        name: "DockerWebServer"
+        image: "httpd"
+        state: started
+        exposed_ports: "80"
+        ports: "8088:80"
+        volumes: /web/:/usr/local/apache2/htdocs/
+This playbook automates the process of integrating Docker and Ansible. It starts by running the tasks on the localhost, and it requires the user to have administrative privileges (become: yes). The following steps are performed:
+Adding Docker GPG apt-key: The Docker GPG apt-key is added using the "apt_key" module. The key is obtained from the URL "https://download.docker.com/linux/ubuntu/gpg".
+Configuring apt for Docker: The apt repository is configured to add the Docker repository by using the "apt_repository" module. The repository information is "deb https://download.docker.com/linux/ubuntu focal stable".
+Updating apt and installing Docker-ce: The apt cache is updated, and Docker-ce is installed using the "apt" module. The state of Docker-ce is set to "latest" to ensure that the latest version is installed.
+Installing Docker module for Python: The Docker module for Python is installed using the "pip" module.
+Starting and enabling Docker services: The Docker service is started and enabled using the "service" module.
+Installing Python3: Python3 is installed using the "package" module. The state of Python3 is set to "present" to ensure that it is installed.
+Installing Docker SDK: The Docker SDK is installed using the "pip" module.
+Pulling the httpd image: The httpd image is pulled from the Docker repository using the "docker_image" module.
+Creating a folder: A folder named "/web" is created using the "file" module.
+Copying content: The content "It Works" is copied to the file "/web/index.html" using the "copy" module.
+Launching Docker container: A Docker container named "DockerWebServer" is launched using the "docker_container" module. The container is created using the "httpd" image, and port 80 is exposed, with the mapping to the host port 8088. The volume "/web" is mapped to the directory "/usr/local/apache2/htdocs/" in the container.
+8. Execute the Ansible Playbook using the following command.
+ansible-playbook docker.yml
+9. Upon successful execution of the playbook, a web server will be operational within a Docker container.
+To access the webpage, use the following URL format:
+<your-remote-host-ip>:<exposed_port_no>/<filename>
+or you can simply use the curl command on the terminal:
+curl http://<your-remote-host-ip>:<exposed_port_no>/index.html
+No alt text provided for this image
+Output generated after using the curl command
+The web server is delivering the desired results. :)
+By checking the managed node, we can determine the success or failure of starting the desired services. In the managed node, use command:
+docker --version
+The "docker --version" command provides a confirmation of a proper installation of Docker by displaying the version of the installed Docker software on the system.
+systemctl status docker
+The command "systemctl status docker" is used to check the status of the Docker service. This command displays the current status of the Docker service, including whether it is running, inactive, or failed, as well as information about recent logs and error messages. This information can be useful in troubleshooting issues related to the Docker service, such as startup failures or unexpected crashes. The output of this command provides a quick and easy way to determine the current state of the Docker service and can be helpful in determining the next steps for resolving any issues.
+If the output indicates that the Docker service is running, it confirms the successful execution of our task. :)
+In conclusion, the integration of Ansible and Docker is a powerful combination that can simplify and automate the deployment and management of complex applications and infrastructure. By leveraging the strengths of both platforms, IT professionals can streamline their workflows, reduce downtime, and ensure consistent, reliable results across all environments.
+With Ansible's simple and flexible automation language, and Docker's ability to package and distribute applications in containers, organizations can gain a competitive edge by reducing the time and effort required to manage and maintain their systems. Whether you're a developer, system administrator, or DevOps engineer, the integration of Ansible and Docker is a must-have toolset for modern IT automation.
+Here we reached the end of the task! :)
+If you’ve any queries regarding this article, it will be my pleasure to help you, just ping me on Rishikesh Sonawane. I'll be glad to help you out.
+Join our Cloud and DevOps community for more Cloud and DevOps Learnings here- Guys in the Cloud and Guys in the Cloud YouTube channel.
+Happy Learning! :)
+If you're interested in my thoughts and ideas on various topics, I invite you to check out my Medium profile where I regularly share my articles and insights. You can find my profile at Rishikesh Sonawane at medium. I would love to hear your feedback and opinions on my writing.
+Thank you for taking the time to read my articles!
+-Rishikesh Sonawane.
